@@ -39,8 +39,6 @@ public class DuplicateServiceImpl implements DuplicateService {
                     : (wb.getNumberOfSheets() > 0 ? wb.getSheetAt(0) : null);
 
             if (sheet == null) return Collections.emptyList();
-
-            // 1) Leer encabezados y mapear nombre -> índice
             int headerRowIdx = sheet.getFirstRowNum();
             Row header = sheet.getRow(headerRowIdx);
             if (header == null) return Collections.emptyList();
@@ -54,7 +52,6 @@ public class DuplicateServiceImpl implements DuplicateService {
                 if (!key.isEmpty()) colIndex.put(key, c);
             }
 
-            // Columnas esperadas
             Integer iContactId = colIndex.get("contactid");
             Integer iName = colIndex.get("name");
             Integer iName1 = colIndex.get("name1");
@@ -62,20 +59,17 @@ public class DuplicateServiceImpl implements DuplicateService {
             Integer iPostalZip = colIndex.get("postalzip");
             Integer iAddress = colIndex.get("address");
 
-            // 2) Reservar capacidad aproximada
             int firstDataRow = headerRowIdx + 1;
             int lastRow = sheet.getLastRowNum();
             int estimated = Math.max(0, lastRow - firstDataRow + 1);
             List<Contacts> out = new ArrayList<>(estimated);
 
-            // 3) Iterar filas de datos
             for (int r = firstDataRow; r <= lastRow; r++) {
                 Row row = sheet.getRow(r);
                 if (row == null) continue;
 
                 Contacts c = new Contacts();
 
-                // id (Long)
                 if (iContactId != null) {
                     String v = duplicateHelper.getCellString(row, iContactId);
                     Long id = duplicateHelper.parseLongSafe(v);
@@ -85,18 +79,14 @@ public class DuplicateServiceImpl implements DuplicateService {
                     c.setId(id);
                 }
 
-                // firstName / lastName
                 c.setFirstName(iName != null ? duplicateHelper.getCellString(row, iName) : null);
                 c.setLastName(iName1 != null ? duplicateHelper.getCellString(row, iName1) : null);
 
-                // email
                 String email = (iEmail != null ? duplicateHelper.getCellString(row, iEmail) : null);
                 c.setEmail(email != null ? email.trim() : null);
 
-                // address
                 c.setAddress(iAddress != null ? duplicateHelper.getCellString(row, iAddress) : null);
 
-                // zipCode (int)
                 if (iPostalZip != null) {
                     String zipTxt = duplicateHelper.getCellString(row, iPostalZip).replaceAll("[^0-9-]", "").trim();
                     c.setZipCode(duplicateHelper.parseIntSafe(zipTxt));
@@ -116,7 +106,6 @@ public class DuplicateServiceImpl implements DuplicateService {
 
         List<DuplicateMatch> out = new ArrayList<>();
 
-        // Comparación 1 a N
         for (int i = 0; i < contacts.size(); i++) {
             Contacts source = contacts.get(i);
             if (source == null || source.getId() == null) continue;
@@ -196,7 +185,6 @@ public class DuplicateServiceImpl implements DuplicateService {
             wb.setCompressTempFiles(true);
             Sheet sh = wb.createSheet("matches");
 
-            // header
             Row h = sh.createRow(0);
             h.createCell(0).setCellValue("sourceId");
             h.createCell(1).setCellValue("targetId");
